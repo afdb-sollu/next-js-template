@@ -1,0 +1,72 @@
+ 
+
+import okhttp3.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Optional;
+
+@Service
+public class WixIntegrationService {
+
+    OkHttpClient client = new OkHttpClient();
+    @Value("${WIX_API_TOKEN}")
+    private String WIX_API_TOKEN;
+
+    @Value("${WIX_PARENT_ACCOUNT_ID}")
+    private String WIX_PARENT_ACCOUNT_ID;
+
+    public static final MediaType JSON
+            = MediaType.parse("application/json; charset=utf-8");
+    private final RestClient restClient;
+
+
+    public WixIntegrationService() {
+        this.restClient = RestClient.builder()
+                //.baseUrl("https://www.wixapis.com")
+                .defaultHeader("Accept", "application/json")
+                .defaultHeader("Content-Type", "application/json")
+                .defaultHeader("Authorization", WIX_API_TOKEN)
+                .defaultHeader("wix-account-id", WIX_PARENT_ACCOUNT_ID)
+                .build();
+    }
+
+    public String getAllCustomerSitesCountOkHttp() throws IOException {
+
+        RequestBody body = RequestBody.create("""
+                {
+                  "filter": {}
+                }
+                """, JSON);
+        Request request = new Request.Builder()
+                .url("https://www.wixapis.com/site-list/v2/sites/count")
+                .addHeader("Accept", "application/json")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", WIX_API_TOKEN)
+                .addHeader("wix-account-id", WIX_PARENT_ACCOUNT_ID)
+                .post(body)
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.body().string();
+
+    }
+
+    public int getAllCustomerSitesCount() {
+
+        try {
+            System.out.println(this.restClient.toString());
+            var count = this.restClient.post().uri("https://www.wixapis.com/site-list/v2/sites/count").retrieve().body(Integer.class);
+
+            System.out.println("Number of customer sites: " + count);
+            return Optional.ofNullable(count).orElse(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(Arrays.toString(e.getStackTrace()));
+        }
+        return 0;
+    }
+
+}
